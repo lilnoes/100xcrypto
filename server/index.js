@@ -5,13 +5,13 @@ const functions = require("./functions");
   let errors = 0;
   let items = 0;
   await functions.init();
-  // const data = await functions.getLatest();
-  // await functions.storeData(data["data"]);
-  // const tokens = await functions.readData();
-  await functions.storeInfo();
-  console.log("finished");
+  const data = await functions.getLatest();
+  await functions.storeData(data["data"]);
+  const tokens = await functions.readData();
+  // await functions.storeInfo();
+  // console.log("finished");
   // console.log(query.length);
-  return;
+  // return;
   for (let token of tokens) {
     try {
       // await functions.storeInfo();

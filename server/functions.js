@@ -3,6 +3,7 @@ const mongodb = require("mongodb");
 const fs = require("fs/promises");
 const coinkey = process.env["COINKEY"];
 const rp = require("request-promise");
+const path = require("path");
 
 let page;
 let collection;
@@ -12,11 +13,12 @@ let items = 0;
 
 async function storeData(data) {
   const json = JSON.stringify(data);
-  await fs.writeFile("dump.json", json, "utf8");
+  await fs.writeFile(path.resolve(__dirname, "dump.json"), json, "utf8");
 }
 
 async function readData() {
-  const file = await fs.readFile("dump.json");
+  console.log(__dirname);
+  const file = await fs.readFile(path.resolve(__dirname, "dump.json"));
   return JSON.parse(file);
 }
 
@@ -68,7 +70,7 @@ async function getBnb(address) {
 
 async function updateData(data) {
   delete data["history"];
-  collection.updateOne(
+  await collection.updateOne(
     { name: data["name"] },
     { $push: { history: data }, $set: { ...data } },
     { upsert: true }
@@ -76,6 +78,7 @@ async function updateData(data) {
 }
 
 async function getData(token) {
+  query.push(token["id"]); return;
   const date_added = new Date(token["date_added"]).getTime();
   if (date_added + 1000 * 3600 * 24 * 30 * 7 < new Date().getTime())
     return null;
@@ -85,6 +88,8 @@ async function getData(token) {
     if (res.urls == null) query.push(token["id"]);
     if (res.date >= min_date) return null;
   }
+
+  return null;
 
   quote = token["quote"]["USD"];
   holderstx = await getHolders(
@@ -169,17 +174,16 @@ module.exports.storeInfo = async function () {
   let count = 0;
   for (let id of query1) {
     count += 1;
-    console.log(count);
     const token = tokens[id];
-    // console.log(token);
-    collection.updateOne(
+    console.log(token["name"], count);
+    await collection.updateOne(
       { name: token["name"] },
       { $set: { ...token } },
       { upsert: true }
     );
   }
-  query.splice(0, 500);
   console.log(query.length);
+  query.splice(0, 500);
   await this.storeQuery();
   await page.browser().close();
 };
@@ -190,11 +194,11 @@ module.exports.sleep = async function (milliseconds) {
 
 module.exports.storeQuery = async function () {
   const json = JSON.stringify(query);
-  await fs.writeFile("query.json", json, "utf8");
+  await fs.writeFile(path.resolve(__dirname, "query.json"), json, "utf8");
 };
 
 module.exports.readQuery = async function () {
-  const file = await fs.readFile("query.json");
+  const file = await fs.readFile(path.resolve(__dirname, "query.json"));
   query.push(...JSON.parse(file));
   return query;
 }
