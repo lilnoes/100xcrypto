@@ -13,6 +13,5 @@ const mongodb = require("mongodb");
 
 const a = [2, 5, 3]
 
-var b = a.slice(0, 1)
-a.splice(0, 1)
-console.log(b, a);
+var b = a.splice(0);
+console.log(a);

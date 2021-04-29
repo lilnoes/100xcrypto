@@ -78,18 +78,13 @@ async function updateData(data) {
 }
 
 async function getData(token) {
-  query.push(token["id"]); return;
   const date_added = new Date(token["date_added"]).getTime();
-  if (date_added + 1000 * 3600 * 24 * 30 * 7 < new Date().getTime())
+  if (date_added + 1000 * 3600 * 24 * 30 * 2 < new Date().getTime())
     return null;
 
   res = await collection.findOne({ name: token["name"] });
-  if (res != null) {
-    if (res.urls == null) query.push(token["id"]);
-    if (res.date >= min_date) return null;
-  }
-
-  return null;
+  if (res != null && res.date >= min_date) return null;
+  if (res != null && res.hide == true) return null;
 
   quote = token["quote"]["USD"];
   holderstx = await getHolders(
@@ -100,13 +95,12 @@ async function getData(token) {
 
   items += 1;
 
-  if (items % 10 == 0) await sleep(2000);
-  console.log("length", query.length, items);
-  if(query.length % 100 == 0) await module.exports.storeQuery();
+  if (items % 10 == 0) await this.sleep(2000);
 
   return {
     name: token["name"],
     symbol: token["symbol"],
+    hide: false,
     date_added: new Date(token["date_added"]),
     token_address: token["platform"]["token_address"],
     platform: token["platform"]["symbol"],
@@ -129,13 +123,11 @@ module.exports.updateData = updateData;
 module.exports.storeData = storeData;
 module.exports.readData = readData;
 
-module.exports.getLatest = async function () {
-  const uri =
-    "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
-  const uri1 = "https://google.com";
+module.exports.getLatest = async function (stored) {
+  if(stored) return null;
   const requestOptions = {
     method: "GET",
-    uri: uri1,
+    uri: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",
     qs: {
       cryptocurrency_type: "tokens",
       limit: 5000,
@@ -175,6 +167,9 @@ module.exports.storeInfo = async function () {
   for (let id of query1) {
     count += 1;
     const token = tokens[id];
+    const res = await collection.findOne({name: token["name"]});
+    if(res && res.hide == true) continue;
+    if(res && res.urls != null) continue;
     console.log(token["name"], count);
     await collection.updateOne(
       { name: token["name"] },
@@ -199,8 +194,49 @@ module.exports.storeQuery = async function () {
 
 module.exports.readQuery = async function () {
   const file = await fs.readFile(path.resolve(__dirname, "query.json"));
+  query.splice(0);
   query.push(...JSON.parse(file));
   return query;
-}
+};
 
 module.exports.items = items;
+
+module.exports.storeLatestData = async function (stored = false) {
+  let errors = 0;
+  await this.init();
+  const data = await this.getLatest(stored);
+  if(!stored) await this.storeData(data["data"]);
+  if(!stored) {console.log("finished storing latest data"); return;}
+  const tokens = await this.readData();
+  for (let token of tokens) {
+    try {
+      const data = await this.getData(token);
+      if (data == null) {
+        errors += 1;
+        console.log("errors", errors, "null data", token["name"]);
+        continue;
+      }
+      console.log(
+        "API call response:",
+        data["name"],
+        data["holders"],
+        this.items
+      );
+      await this.updateData(data);
+    } catch (e) {
+      // await functions.storeInfo();
+    }
+  }
+};
+
+module.exports.storeLatestInfo = async function (stored = false) {
+  await this.init();
+  if(stored) await this.storeInfo();
+  if(stored) {console.log("finished storing info"); return;}
+
+  const tokens = await this.readData();
+  for (let token of tokens)
+      query.push([token["id"]]);
+  await this.storeQuery();
+  // console.log("API call response:", token);
+};

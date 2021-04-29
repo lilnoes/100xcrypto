@@ -1,33 +1,19 @@
 require("dotenv").config();
 const functions = require("./functions");
 
-(async () => {
-  let errors = 0;
-  let items = 0;
-  await functions.init();
-  const data = await functions.getLatest();
-  await functions.storeData(data["data"]);
-  const tokens = await functions.readData();
-  // await functions.storeInfo();
-  // console.log("finished");
-  // console.log(query.length);
-  // return;
-  for (let token of tokens) {
-    try {
-      // await functions.storeInfo();
-      // continue;
-      const data = await functions.getData(token);
-      if (data == null) {
-        errors += 1;
-        console.log("errors", errors, "null data", token["name"]);
-        continue;
-      }
-      console.log("API call response:", data["name"], data["holders"], functions.items);
-      await functions.updateData(data);
-    } catch (e) {
-      // await functions.storeInfo();
-    }
+async function main(){
+  // const stored = true;
+  await functions.storeLatestData(false);
+  await functions.storeLatestData(true); //call this after storing
+  console.log("finished storing data");
+
+  await functions.storeLatestInfo(false);
+  for(let i = 0; i<10000; ++i){
+  await functions.storeLatestInfo(true);
+  console.log("finished storing info", i+1);
   }
-  await functions.storeQuery();
-  // console.log("API call response:", token);
+}
+
+(async()=>{
+  await main();
 })();
