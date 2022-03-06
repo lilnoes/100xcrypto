@@ -10,6 +10,8 @@ let collection;
 const query = [];
 let min_date;
 let items = 0;
+const months = 1;
+const max_date = 1000 * 3600 * 24 * 30 * months;
 
 async function storeData(data) {
   const json = JSON.stringify(data);
@@ -79,7 +81,7 @@ async function updateData(data) {
 
 async function getData(token) {
   const date_added = new Date(token["date_added"]).getTime();
-  if (date_added + 1000 * 3600 * 24 * 30 * 2 < new Date().getTime())
+  if (date_added + max_date < new Date().getTime())
     return null;
 
   res = await collection.findOne({ name: token["name"] });
@@ -171,6 +173,7 @@ module.exports.storeInfo = async function () {
     if(res && res.hide == true) continue;
     if(res && res.urls != null) continue;
     console.log(token["name"], count);
+    token.date_added = new Date(token.date_added)
     await collection.updateOne(
       { name: token["name"] },
       { $set: { ...token } },
@@ -199,7 +202,6 @@ module.exports.readQuery = async function () {
   return query;
 };
 
-module.exports.items = items;
 
 module.exports.storeLatestData = async function (stored = false) {
   let errors = 0;
@@ -220,7 +222,7 @@ module.exports.storeLatestData = async function (stored = false) {
         "API call response:",
         data["name"],
         data["holders"],
-        this.items
+        items
       );
       await this.updateData(data);
     } catch (e) {

@@ -8,7 +8,7 @@ export default class Home extends React.Component {
     super(props);
     this.state = { assets: [] };
     this.last = 0;
-    this.limit = 10;
+    this.limit = 30;
   }
 
   async handleClick() {
@@ -28,7 +28,7 @@ export default class Home extends React.Component {
         <div className="bg-red-100 p-3">
           <h1 className="text-2xl font-bold mb-3">Assets</h1>
           <div className="mb-5">{assets}</div>
-          <button className="p-2 text-white bg-blue-800 rounded-lg" onClick={()=>this.handleClick()}>Load 10 more</button>
+          <button className="p-2 text-white bg-blue-800 rounded-lg" onClick={()=>this.handleClick()}>Load 30 more</button>
         </div>
       </>
     );
@@ -36,16 +36,24 @@ export default class Home extends React.Component {
 }
 
 function Asset(props) {
-  console.log("here here");
+  console.log("here here", props);
   const asset = props.asset;
+  let platform = "";
+  window.asset = asset;
   if(!asset.urls) return <div></div>
+  const explorer = asset.urls.explorer[0];
+  const volume24h = asset.volume_24h;
+  if(!explorer) return <div></div>
+  if(volume24h < 1000000) return <div></div>
+  if(explorer.includes("bscscan")) platform = "bnb"
+  else return (<div></div>);
   return (<>
     <div className="bg-white rounded-lg p-1 my-3">
       <h2 className="text-xl font-bold">{asset.name}</h2>
       {/* <div><img src={asset.logo} /></div> */}
       <p><span className="key">symbol: </span>{asset.symbol}</p>
       <p><span className="key">date added: </span>{asset.date_added}</p>
-      <p><span className="key">platform: </span>{asset.platform.name}</p>
+      <p><span className="key">platform: </span>{platform}</p>
       <p><span className="key">volume(24h): </span>{asset.volume_24h}</p>
       <p><span className="key">market cap: </span>{asset.market_cap}</p>
       <p><span className="key">holders: </span>{asset.holders}</p>
